@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\SslExpiringMail;
 use App\Models\Notification;
+use App\Models\Setting;
 use App\Models\Site;
 use App\Models\SslCertificate;
 use Illuminate\Console\Command;
@@ -142,7 +143,7 @@ class CheckSslCertificatesCommand extends Command
             return;
         }
 
-        $adminEmail = config('sitewatch.admin_email', 'admin@example.com');
+        $adminEmail = Setting::get('admin_email') ?? config('services.sitewatch.admin_email', 'admin@example.com');
 
         try {
             Mail::to($adminEmail)->send(new SslExpiringMail($site, $daysRemaining, $expiresAt, $issuer));

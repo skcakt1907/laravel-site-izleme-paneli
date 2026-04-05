@@ -2,7 +2,9 @@
 
 namespace App\Livewire\Sites;
 
+use App\Models\Server;
 use App\Models\Site;
+use Illuminate\Support\Facades\Artisan;
 use Livewire\Component;
 use Livewire\WithPagination;
 
@@ -11,15 +13,22 @@ class SiteManager extends Component
     use WithPagination;
 
     // ---------- FİLTRE & ARAMA ----------
-    public string $search = '';        // Arama metni
-    public string $filterType = '';    // Site tipi filtresi (wordpress/laravel/other)
-    public string $filterStatus = '';  // Durum filtresi (active/inactive)
-    public string $sortField = 'name'; // Sıralama alanı
+    public string $search = '';           // Arama metni
+    public string $filterType = '';       // Site tipi filtresi (wordpress/laravel/other)
+    public string $filterStatus = '';     // Durum filtresi (active/inactive)
+    public string $filterServer = '';     // Sunucu filtresi
+    public string $filterHealth = '';     // Sağlık filtresi (down/ssl_expiring/domain_expiring)
+    public string $sortField = 'name';    // Sıralama alanı
     public string $sortDirection = 'asc'; // Sıralama yönü
+
+    // ---------- TOPLU İŞLEM ----------
+    public array $selectedSites = [];  // Seçili site ID'leri
+    public bool $selectAll = false;    // Tümünü seç
 
     // ---------- MODAL DURUMU ----------
     public bool $showModal = false;    // Ekleme/düzenleme modalı açık mı?
     public bool $showDeleteModal = false; // Silme onay modalı açık mı?
+    public bool $showBulkDeleteModal = false; // Toplu silme onay modalı
     public ?int $editingSiteId = null; // Düzenlenen site ID (null = yeni kayıt)
 
     // ---------- FORM ALANLARI ----------
@@ -46,6 +55,16 @@ class SiteManager extends Component
     }
 
     public function updatingFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterServer(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatingFilterHealth(): void
     {
         $this->resetPage();
     }
@@ -154,6 +173,121 @@ class SiteManager extends Component
         $site->update(['is_active' => !$site->is_active]);
     }
 
+    // ---------- TOPLU İŞLEMLER ----------
+
+    // Tümünü seç/bırak - mevcut filtrelere uyan tüm siteleri seçer
+    public function updatedSelectAll(bool $value): void
+    {
+        if ($value) {
+            $this->selectedSites = $this->buildFilteredQuery()
+                ->pluck('id')
+                ->map(fn ($id) => (string) $id)
+                ->toArray();
+        } else {
+            $this->selectedSites = [];
+        }
+    }
+
+    // Filtre sorgusunu merkezi bir metotta tut (tekrar kullanmak için)
+    private function buildFilteredQuery()
+    {
+        return Site::query()
+            ->when($this->search, function ($query) {
+                $query->where(function ($q) {
+                    $q->where('name', 'like', "%{$this->search}%")
+                      ->orWhere('url', 'like', "%{$this->search}%")
+                      ->orWhere('customer_email', 'like', "%{$this->search}%");
+                });
+            })
+            ->when($this->filterType, fn ($query) => $query->where('type', $this->filterType))
+            ->when($this->filterStatus !== '', function ($query) {
+                if ($this->filterStatus === 'active') {
+                    $query->where('is_active', true);
+                } elseif ($this->filterStatus === 'inactive') {
+                    $query->where('is_active', false);
+                }
+            })
+            ->when($this->filterServer !== '', function ($query) {
+                if ($this->filterServer === 'none') {
+                    $query->whereNull('server_id');
+                } else {
+                    $query->where('server_id', $this->filterServer);
+                }
+            })
+            ->when($this->filterHealth, function ($query) {
+                match ($this->filterHealth) {
+                    'down' => $query->whereHas('checks', function ($q) {
+                        $q->where('is_up', false)
+                          ->whereIn('id', function ($sub) {
+                              $sub->selectRaw('MAX(id)')->from('site_checks')->groupBy('site_id');
+                          });
+                    }),
+                    'ssl_expiring' => $query->whereHas('sslCertificate', function ($q) {
+                        $q->where('days_remaining', '<=', 30)->where('days_remaining', '>', 0);
+                    }),
+                    'ssl_expired' => $query->whereHas('sslCertificate', function ($q) {
+                        $q->where('days_remaining', '<=', 0);
+                    }),
+                    'domain_expiring' => $query->whereNotNull('domain_expires_at')
+                        ->where('domain_expires_at', '<=', now()->addDays(30))
+                        ->where('domain_expires_at', '>', now()),
+                    'domain_expired' => $query->whereNotNull('domain_expires_at')
+                        ->where('domain_expires_at', '<=', now()),
+                    default => null,
+                };
+            });
+    }
+
+    // Toplu aktif yap
+    public function bulkActivate(): void
+    {
+        Site::whereIn('id', $this->selectedSites)->update(['is_active' => true]);
+        $count = count($this->selectedSites);
+        $this->selectedSites = [];
+        $this->selectAll = false;
+        session()->flash('message', "{$count} site aktif yapıldı.");
+    }
+
+    // Toplu pasif yap
+    public function bulkDeactivate(): void
+    {
+        Site::whereIn('id', $this->selectedSites)->update(['is_active' => false]);
+        $count = count($this->selectedSites);
+        $this->selectedSites = [];
+        $this->selectAll = false;
+        session()->flash('message', "{$count} site pasif yapıldı.");
+    }
+
+    // Toplu sil onay
+    public function confirmBulkDelete(): void
+    {
+        $this->showBulkDeleteModal = true;
+    }
+
+    // Toplu sil
+    public function bulkDelete(): void
+    {
+        $count = count($this->selectedSites);
+        Site::whereIn('id', $this->selectedSites)->delete();
+        $this->selectedSites = [];
+        $this->selectAll = false;
+        $this->showBulkDeleteModal = false;
+        session()->flash('message', "{$count} site silindi.");
+    }
+
+    // Seçili siteleri kontrol et
+    public function bulkCheck(): void
+    {
+        $count = 0;
+        foreach ($this->selectedSites as $siteId) {
+            Artisan::call('sites:check', ['--site' => $siteId]);
+            $count++;
+        }
+        $this->selectedSites = [];
+        $this->selectAll = false;
+        session()->flash('message', "{$count} site kontrol edildi.");
+    }
+
     // Form alanlarını sıfırla
     private function resetForm(): void
     {
@@ -173,26 +307,13 @@ class SiteManager extends Component
     public function render()
     {
         // Sorguyu filtrele ve sırala
-        $sites = Site::query()
-            ->when($this->search, function ($query) {
-                $query->where(function ($q) {
-                    $q->where('name', 'like', "%{$this->search}%")
-                      ->orWhere('url', 'like', "%{$this->search}%")
-                      ->orWhere('customer_email', 'like', "%{$this->search}%");
-                });
-            })
-            ->when($this->filterType, fn ($query) => $query->where('type', $this->filterType))
-            ->when($this->filterStatus !== '', function ($query) {
-                if ($this->filterStatus === 'active') {
-                    $query->where('is_active', true);
-                } elseif ($this->filterStatus === 'inactive') {
-                    $query->where('is_active', false);
-                }
-            })
+        $sites = $this->buildFilteredQuery()
             ->orderBy($this->sortField, $this->sortDirection)
             ->paginate(15);
 
-        return view('livewire.sites.site-manager', compact('sites'))
+        $servers = Server::orderBy('name')->get();
+
+        return view('livewire.sites.site-manager', compact('sites', 'servers'))
             ->layout('components.layouts.app', [
                 'title'  => 'Siteler - SiteWatch',
                 'header' => 'Site Yönetimi',

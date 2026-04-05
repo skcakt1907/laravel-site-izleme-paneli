@@ -4,7 +4,9 @@ namespace App\Livewire\Sites;
 
 use App\Models\CpanelAccount;
 use App\Models\Site;
+use App\Models\SiteCheck;
 use App\Models\WordpressSite;
+use Illuminate\Support\Carbon;
 use Livewire\Component;
 
 class SiteDetail extends Component
@@ -35,6 +37,8 @@ class SiteDetail extends Component
             'sslCertificate',
             'cpanelAccount',
             'wordpressSite',
+            'latestPageSpeed',
+            'pageSpeedScores' => fn ($q) => $q->latest('checked_at')->limit(10),
             'notifications' => fn ($q) => $q->latest('sent_at')->limit(10),
         ]);
 
@@ -151,9 +155,38 @@ class SiteDetail extends Component
         session()->flash('message', 'WordPress bilgileri silindi.');
     }
 
+    /**
+     * Son 30 günlük günlük uptime yüzdesini hesapla.
+     */
+    public function getUptimeChartData(): array
+    {
+        $labels = [];
+        $data   = [];
+
+        for ($i = 29; $i >= 0; $i--) {
+            $date = Carbon::today()->subDays($i);
+            $labels[] = $date->format('d.m');
+
+            $total = SiteCheck::where('site_id', $this->site->id)
+                ->whereDate('checked_at', $date)
+                ->count();
+
+            $up = SiteCheck::where('site_id', $this->site->id)
+                ->whereDate('checked_at', $date)
+                ->where('is_up', true)
+                ->count();
+
+            $data[] = $total > 0 ? round(($up / $total) * 100, 1) : null;
+        }
+
+        return ['labels' => $labels, 'data' => $data];
+    }
+
     public function render()
     {
-        return view('livewire.sites.site-detail')
+        $uptimeChart = $this->getUptimeChartData();
+
+        return view('livewire.sites.site-detail', compact('uptimeChart'))
             ->layout('components.layouts.app', [
                 'title'  => "{$this->site->name} - SiteWatch",
                 'header' => $this->site->name,

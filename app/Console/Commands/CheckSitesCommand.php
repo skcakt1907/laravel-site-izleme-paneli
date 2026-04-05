@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Mail\SiteDownMail;
 use App\Models\Notification;
+use App\Models\Setting;
 use App\Models\Site;
 use App\Models\SiteCheck;
 use Illuminate\Console\Command;
@@ -114,7 +115,7 @@ class CheckSitesCommand extends Command
     private function sendDownNotification(Site $site, ?int $statusCode, ?string $errorMessage, int $failures): void
     {
         // Admin e-posta adresini config'den al
-        $adminEmail = config('sitewatch.admin_email', 'admin@example.com');
+        $adminEmail = Setting::get('admin_email') ?? config('services.sitewatch.admin_email', 'admin@example.com');
 
         // Mail gönder
         try {

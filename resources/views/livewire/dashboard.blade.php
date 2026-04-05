@@ -1,7 +1,7 @@
 <div wire:poll.{{ $refreshInterval }}s>
 
     {{-- ==================== ÜST İSTATİSTİK KARTLARI ==================== --}}
-    <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+    <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-4 mb-6">
         {{-- Toplam Site --}}
         <div class="bg-white rounded-xl shadow-sm p-5">
             <div class="text-xs text-gray-500 uppercase font-medium">Toplam Site</div>
@@ -43,6 +43,14 @@
             <div class="text-xs text-gray-500 uppercase font-medium">SSL Uyarı</div>
             <div class="text-3xl font-bold {{ ($sslWarnings->count() + $sslExpired->count()) > 0 ? 'text-yellow-600' : 'text-gray-400' }} mt-1">
                 {{ $sslWarnings->count() + $sslExpired->count() }}
+            </div>
+        </div>
+
+        {{-- Domain Uyarı --}}
+        <div class="bg-white rounded-xl shadow-sm p-5">
+            <div class="text-xs text-gray-500 uppercase font-medium">Domain Uyarı</div>
+            <div class="text-3xl font-bold {{ ($domainWarnings->count() + $domainExpired->count()) > 0 ? 'text-orange-600' : 'text-gray-400' }} mt-1">
+                {{ $domainWarnings->count() + $domainExpired->count() }}
             </div>
         </div>
     </div>
@@ -134,6 +142,7 @@
             <div class="p-5">
                 @if($sslExpired->count() > 0)
                     @foreach ($sslExpired as $cert)
+                        @if(!$cert->site) @continue @endif
                         <div class="flex items-center justify-between py-2 border-b border-gray-50">
                             <a href="{{ route('admin.sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
                             <span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">Süresi Dolmuş</span>
@@ -142,6 +151,7 @@
                 @endif
 
                 @forelse ($sslWarnings as $cert)
+                    @if(!$cert->site) @continue @endif
                     <div class="flex items-center justify-between py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
                         <a href="{{ route('admin.sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
                         <span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">{{ $cert->days_remaining }} gün</span>
@@ -159,6 +169,54 @@
             </div>
         </div>
     </div>
+
+    {{-- ==================== DOMAIN UYARILARI ==================== --}}
+    @if($domainExpired->count() > 0 || $domainWarnings->count() > 0)
+        <div class="bg-white rounded-xl shadow-sm mb-6">
+            <div class="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+                <h3 class="font-semibold text-gray-800 flex items-center gap-2">
+                    <svg class="w-5 h-5 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
+                    </svg>
+                    Domain Süre Uyarıları
+                </h3>
+                <span class="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-800">
+                    {{ $domainExpired->count() + $domainWarnings->count() }}
+                </span>
+            </div>
+            <div class="p-5">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
+                    {{-- Süresi dolmuş domainler --}}
+                    @foreach ($domainExpired as $site)
+                        <a href="{{ route('admin.sites.show', $site) }}"
+                           class="flex items-center justify-between p-3 rounded-lg bg-red-50 border border-red-100 hover:bg-red-100 transition">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ $site->name }}</p>
+                                <p class="text-xs text-gray-500">{{ $site->domain }}</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700 font-medium whitespace-nowrap">
+                                Süresi Dolmuş
+                            </span>
+                        </a>
+                    @endforeach
+
+                    {{-- Süresi yaklaşan domainler --}}
+                    @foreach ($domainWarnings as $site)
+                        <a href="{{ route('admin.sites.show', $site) }}"
+                           class="flex items-center justify-between p-3 rounded-lg bg-yellow-50 border border-yellow-100 hover:bg-yellow-100 transition">
+                            <div>
+                                <p class="text-sm font-medium text-gray-900">{{ $site->name }}</p>
+                                <p class="text-xs text-gray-500">{{ $site->domain }}</p>
+                            </div>
+                            <span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 font-medium whitespace-nowrap">
+                                {{ $site->domain_expires_at->diffInDays(now()) }} gün
+                            </span>
+                        </a>
+                    @endforeach
+                </div>
+            </div>
+        </div>
+    @endif
 
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {{-- ==================== SON HTTP KONTROLLERİ ==================== --}}
@@ -178,6 +236,7 @@
                     </thead>
                     <tbody class="divide-y">
                         @forelse ($recentChecks as $check)
+                            @if(!$check->site) @continue @endif
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-2 font-medium">
                                     <a href="{{ route('admin.sites.show', $check->site) }}" class="hover:text-blue-600">{{ $check->site->name }}</a>
@@ -205,6 +264,7 @@
             </div>
             <div class="p-5">
                 @forelse ($recentNotifications as $notif)
+                    @if(!$notif->site) @continue @endif
                     <div class="flex items-start gap-3 py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
                         {{-- Bildirim tip ikonu --}}
                         @switch($notif->type)

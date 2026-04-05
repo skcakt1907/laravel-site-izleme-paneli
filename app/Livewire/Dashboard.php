@@ -75,11 +75,25 @@ class Dashboard extends Component
             ? round(($upChecks24h / $totalChecks24h) * 100, 1)
             : 0;
 
+        // ---------- DOMAIN UYARILARI ----------
+        $domainWarnings = Site::where('is_active', true)
+            ->whereNotNull('domain_expires_at')
+            ->where('domain_expires_at', '<=', now()->addDays(30))
+            ->where('domain_expires_at', '>', now())
+            ->orderBy('domain_expires_at')
+            ->get();
+
+        $domainExpired = Site::where('is_active', true)
+            ->whereNotNull('domain_expires_at')
+            ->where('domain_expires_at', '<=', now())
+            ->get();
+
         return view('livewire.dashboard', compact(
             'totalSites', 'activeSites', 'wpSites', 'laravelSites', 'otherSites',
             'downSites', 'sslWarnings', 'sslExpired',
             'recentChecks', 'recentNotifications',
             'avgResponseTime', 'uptimePercent',
+            'domainWarnings', 'domainExpired',
         ))
         ->layout('components.layouts.app', [
             'title'  => 'Dashboard - SiteWatch',

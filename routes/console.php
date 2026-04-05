@@ -23,6 +23,16 @@ Schedule::command('sites:check-wordpress')
     ->dailyAt('09:00')
     ->withoutOverlapping();
 
+// Her gün 10:00'da domain bitiş tarihlerini kontrol et
+Schedule::command('sites:check-domain')
+    ->dailyAt('10:00')
+    ->withoutOverlapping();
+
+// Haftada bir (Pazartesi 06:00) PageSpeed kontrolü
+Schedule::command('sites:check-pagespeed')
+    ->weeklyOn(1, '06:00')
+    ->withoutOverlapping();
+
 // Her ayın 1'inde geçen ayın raporunu oluştur (sabah 07:00)
 Schedule::command('sites:generate-report')
     ->monthlyOn(1, '07:00')

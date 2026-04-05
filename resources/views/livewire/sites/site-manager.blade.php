@@ -21,8 +21,8 @@
             </div>
 
             {{-- Filtreler --}}
-            <div class="flex gap-3 items-center">
-                {{-- Site Tipi Filtresi --}}
+            <div class="flex flex-wrap gap-2 items-center">
+                {{-- Site Tipi --}}
                 <select wire:model.live="filterType" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                     <option value="">Tüm Tipler</option>
                     <option value="wordpress">WordPress</option>
@@ -30,14 +30,33 @@
                     <option value="other">Diğer</option>
                 </select>
 
-                {{-- Durum Filtresi --}}
+                {{-- Durum --}}
                 <select wire:model.live="filterStatus" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
                     <option value="">Tüm Durumlar</option>
                     <option value="active">Aktif</option>
                     <option value="inactive">Pasif</option>
                 </select>
 
-                {{-- Yeni Site Ekle Butonu --}}
+                {{-- Sunucu --}}
+                <select wire:model.live="filterServer" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="">Tüm Sunucular</option>
+                    <option value="none">Sunucu Atanmamış</option>
+                    @foreach($servers as $server)
+                        <option value="{{ $server->id }}">{{ $server->name }}</option>
+                    @endforeach
+                </select>
+
+                {{-- Sağlık --}}
+                <select wire:model.live="filterHealth" class="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500">
+                    <option value="">Tüm Sağlık</option>
+                    <option value="down">Çöken Siteler</option>
+                    <option value="ssl_expiring">SSL Süresi Dolan</option>
+                    <option value="ssl_expired">SSL Süresi Dolmuş</option>
+                    <option value="domain_expiring">Domain Süresi Dolan</option>
+                    <option value="domain_expired">Domain Süresi Dolmuş</option>
+                </select>
+
+                {{-- Yeni Site Ekle --}}
                 <button wire:click="create"
                         class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 transition">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -49,12 +68,45 @@
         </div>
     </div>
 
+    {{-- Toplu İşlem Toolbar --}}
+    @if(count($selectedSites) > 0)
+        <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4 flex flex-col md:flex-row items-center justify-between gap-3">
+            <span class="text-sm text-blue-800 font-medium">
+                {{ count($selectedSites) }} site seçildi
+            </span>
+            <div class="flex items-center gap-2">
+                <button wire:click="bulkCheck"
+                        class="px-3 py-1.5 text-xs font-medium bg-white border border-blue-300 text-blue-700 rounded-lg hover:bg-blue-100 transition flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                    Kontrol Et
+                </button>
+                <button wire:click="bulkActivate"
+                        class="px-3 py-1.5 text-xs font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 transition">
+                    Aktif Yap
+                </button>
+                <button wire:click="bulkDeactivate"
+                        class="px-3 py-1.5 text-xs font-medium bg-yellow-500 text-white rounded-lg hover:bg-yellow-600 transition">
+                    Pasif Yap
+                </button>
+                <button wire:click="confirmBulkDelete"
+                        class="px-3 py-1.5 text-xs font-medium bg-red-600 text-white rounded-lg hover:bg-red-700 transition">
+                    Sil
+                </button>
+            </div>
+        </div>
+    @endif
+
     {{-- Site Tablosu --}}
     <div class="bg-white rounded-xl shadow-sm overflow-hidden">
         <div class="overflow-x-auto">
             <table class="w-full text-sm text-left">
                 <thead class="bg-gray-50 text-gray-600 uppercase text-xs">
                     <tr>
+                        {{-- Toplu Seç Checkbox --}}
+                        <th class="px-4 py-3 w-10">
+                            <input type="checkbox" wire:model.live="selectAll"
+                                   class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                        </th>
                         {{-- Sıralanabilir kolon başlıkları --}}
                         <th class="px-6 py-3 cursor-pointer hover:bg-gray-100" wire:click="sortBy('name')">
                             <div class="flex items-center gap-1">
@@ -93,7 +145,12 @@
                 </thead>
                 <tbody class="divide-y divide-gray-200">
                     @forelse ($sites as $site)
-                        <tr class="hover:bg-gray-50 transition" wire:key="site-{{ $site->id }}">
+                        <tr class="hover:bg-gray-50 transition {{ in_array($site->id, $selectedSites) ? 'bg-blue-50' : '' }}" wire:key="site-{{ $site->id }}">
+                            {{-- Checkbox --}}
+                            <td class="px-4 py-4">
+                                <input type="checkbox" wire:model.live="selectedSites" value="{{ $site->id }}"
+                                       class="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500">
+                            </td>
                             {{-- Site Adı --}}
                             <td class="px-6 py-4 font-medium text-gray-900">
                                 {{ $site->name }}
@@ -181,7 +238,7 @@
                     @empty
                         {{-- Kayıt bulunamadı --}}
                         <tr>
-                            <td colspan="7" class="px-6 py-12 text-center text-gray-400">
+                            <td colspan="8" class="px-6 py-12 text-center text-gray-400">
                                 <svg class="w-12 h-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9"/>
                                 </svg>
@@ -345,6 +402,37 @@
                         <button wire:click="delete"
                                 class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
                             Evet, Sil
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- ============================================ --}}
+    {{-- TOPLU SİLME ONAY MODALI --}}
+    {{-- ============================================ --}}
+    @if($showBulkDeleteModal)
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/50" x-data x-transition>
+            <div class="bg-white rounded-2xl shadow-xl w-full max-w-md mx-4">
+                <div class="p-6 text-center">
+                    <div class="mx-auto w-14 h-14 bg-red-100 rounded-full flex items-center justify-center mb-4">
+                        <svg class="w-7 h-7 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.5c-.77.833.192 2.5 1.732 2.5z"/>
+                        </svg>
+                    </div>
+                    <h3 class="text-lg font-semibold text-gray-900 mb-2">Toplu Silme</h3>
+                    <p class="text-sm text-gray-500 mb-6">
+                        <strong>{{ count($selectedSites) }}</strong> siteyi ve tüm ilişkili verileri kalıcı olarak silmek istediğinize emin misiniz?
+                    </p>
+                    <div class="flex justify-center gap-3">
+                        <button wire:click="$set('showBulkDeleteModal', false)"
+                                class="px-4 py-2 border border-gray-300 rounded-lg text-gray-700 hover:bg-gray-50 transition">
+                            Vazgeç
+                        </button>
+                        <button wire:click="bulkDelete"
+                                class="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg font-medium transition">
+                            Evet, {{ count($selectedSites) }} Siteyi Sil
                         </button>
                     </div>
                 </div>

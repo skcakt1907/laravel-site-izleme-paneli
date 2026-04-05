@@ -38,6 +38,7 @@
                     'overview'    => 'Genel Bakış',
                     'checks'     => 'HTTP Kontrolleri',
                     'ssl'        => 'SSL Sertifika',
+                    'pagespeed'  => 'Hız Skoru',
                     'cpanel'     => 'cPanel',
                     'wordpress'  => 'WordPress',
                     'notifications' => 'Bildirimler',
@@ -72,7 +73,7 @@
                     <div class="space-y-3">
                         <h3 class="text-sm font-semibold text-gray-500 uppercase">Durum Özeti</h3>
                         @php $lastCheck = $site->checks->first(); @endphp
-                        <div class="grid grid-cols-2 gap-3">
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                             {{-- Son HTTP Durumu --}}
                             <div class="bg-gray-50 rounded-lg p-3">
                                 <div class="text-xs text-gray-500">HTTP Durumu</div>
@@ -119,9 +120,125 @@
                                     <div class="text-lg font-bold text-gray-400">-</div>
                                 @endif
                             </div>
+
+                            {{-- PageSpeed Mobil --}}
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="text-xs text-gray-500">Hız (Mobil)</div>
+                                @if($site->latestPageSpeed)
+                                    <div class="text-lg font-bold {{ $site->latestPageSpeed->mobile_score >= 90 ? 'text-green-600' : ($site->latestPageSpeed->mobile_score >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                                        {{ $site->latestPageSpeed->mobile_score }}
+                                    </div>
+                                @else
+                                    <div class="text-lg font-bold text-gray-400">-</div>
+                                @endif
+                            </div>
+
+                            {{-- PageSpeed Desktop --}}
+                            <div class="bg-gray-50 rounded-lg p-3">
+                                <div class="text-xs text-gray-500">Hız (Desktop)</div>
+                                @if($site->latestPageSpeed)
+                                    <div class="text-lg font-bold {{ $site->latestPageSpeed->desktop_score >= 90 ? 'text-green-600' : ($site->latestPageSpeed->desktop_score >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                                        {{ $site->latestPageSpeed->desktop_score }}
+                                    </div>
+                                @else
+                                    <div class="text-lg font-bold text-gray-400">-</div>
+                                @endif
+                            </div>
                         </div>
                     </div>
                 </div>
+
+                {{-- Uptime Grafiği (Son 30 Gün) --}}
+                <div class="mt-6">
+                    <h3 class="text-sm font-semibold text-gray-500 uppercase mb-3">Uptime Grafiği — Son 30 Gün</h3>
+                    <div class="bg-gray-50 rounded-xl p-4" style="height: 280px;">
+                        <canvas id="uptimeChart"
+                                x-data="{
+                                    chart: null,
+                                    init() {
+                                        this.chart = new Chart(document.getElementById('uptimeChart'), {
+                                            type: 'line',
+                                            data: {
+                                                labels: @js($uptimeChart['labels']),
+                                                datasets: [{
+                                                    label: 'Uptime %',
+                                                    data: @js($uptimeChart['data']),
+                                                    borderColor: '#3b82f6',
+                                                    backgroundColor: 'rgba(59, 130, 246, 0.08)',
+                                                    borderWidth: 2.5,
+                                                    fill: true,
+                                                    tension: 0.35,
+                                                    pointRadius: 0,
+                                                    pointHoverRadius: 5,
+                                                    pointHoverBackgroundColor: '#3b82f6',
+                                                    pointHoverBorderColor: '#fff',
+                                                    pointHoverBorderWidth: 2,
+                                                    spanGaps: true,
+                                                }]
+                                            },
+                                            options: {
+                                                responsive: true,
+                                                maintainAspectRatio: false,
+                                                interaction: { intersect: false, mode: 'index' },
+                                                plugins: {
+                                                    legend: { display: false },
+                                                    tooltip: {
+                                                        backgroundColor: '#1f2937',
+                                                        titleColor: '#9ca3af',
+                                                        bodyColor: '#fff',
+                                                        titleFont: { size: 11 },
+                                                        bodyFont: { size: 13, weight: 'bold' },
+                                                        padding: 10,
+                                                        cornerRadius: 8,
+                                                        displayColors: false,
+                                                        callbacks: {
+                                                            label: (ctx) => ctx.parsed.y !== null ? '%' + ctx.parsed.y : 'Veri yok'
+                                                        }
+                                                    }
+                                                },
+                                                scales: {
+                                                    y: {
+                                                        min: 0, max: 100,
+                                                        ticks: { callback: (v) => '%' + v, color: '#9ca3af', font: { size: 11 } },
+                                                        grid: { color: 'rgba(0,0,0,0.04)' },
+                                                        border: { display: false }
+                                                    },
+                                                    x: {
+                                                        ticks: { color: '#9ca3af', font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 10 },
+                                                        grid: { display: false },
+                                                        border: { display: false }
+                                                    }
+                                                }
+                                            }
+                                        });
+                                    }
+                                }"
+                                x-init="init()">
+                        </canvas>
+                    </div>
+                </div>
+
+                {{-- Domain Süresi --}}
+                @if($site->domain_expires_at)
+                    <div class="mt-6 p-4 rounded-lg {{ $site->isDomainExpired() ? 'bg-red-50 border border-red-200' : ($site->isDomainExpiringSoon() ? 'bg-yellow-50 border border-yellow-200' : 'bg-green-50 border border-green-200') }}">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <h3 class="text-sm font-semibold text-gray-600">Domain Süresi</h3>
+                                <p class="text-xs text-gray-500 mt-0.5">{{ $site->domain }} &mdash; Son kontrol: {{ $site->domain_checked_at?->diffForHumans() ?? '-' }}</p>
+                            </div>
+                            <div class="text-right">
+                                <div class="text-lg font-bold {{ $site->isDomainExpired() ? 'text-red-600' : ($site->isDomainExpiringSoon() ? 'text-yellow-600' : 'text-green-600') }}">
+                                    @if($site->isDomainExpired())
+                                        Süresi Dolmuş
+                                    @else
+                                        {{ $site->domain_expires_at->diffInDays(now()) }} gün kaldı
+                                    @endif
+                                </div>
+                                <div class="text-xs text-gray-500">{{ $site->domain_expires_at->format('d.m.Y') }}</div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
 
                 {{-- Notlar --}}
                 @if($site->notes)
@@ -268,6 +385,98 @@
                     </div>
                 @endif
 
+            {{-- ==================== SAYFA HIZ SKORU ==================== --}}
+            @elseif ($activeTab === 'pagespeed')
+                @if ($site->latestPageSpeed)
+                    @php $ps = $site->latestPageSpeed; @endphp
+
+                    {{-- Skor Kartları --}}
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                        {{-- Mobil Skor --}}
+                        <div class="bg-gray-50 rounded-xl p-6 text-center">
+                            <div class="text-xs text-gray-500 uppercase font-medium mb-3">Mobil Skor</div>
+                            <div class="inline-flex items-center justify-center w-28 h-28 rounded-full border-4
+                                        {{ $ps->mobile_score >= 90 ? 'border-green-500' : ($ps->mobile_score >= 50 ? 'border-yellow-500' : 'border-red-500') }}">
+                                <span class="text-4xl font-bold {{ $ps->mobile_score >= 90 ? 'text-green-600' : ($ps->mobile_score >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                                    {{ $ps->mobile_score ?? '-' }}
+                                </span>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="text-gray-400 text-xs">FCP</div>
+                                    <div class="font-semibold">{{ $ps->mobile_fcp ? number_format($ps->mobile_fcp / 1000, 1) . 's' : '-' }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400 text-xs">LCP</div>
+                                    <div class="font-semibold">{{ $ps->mobile_lcp ? number_format($ps->mobile_lcp / 1000, 1) . 's' : '-' }}</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {{-- Masaüstü Skor --}}
+                        <div class="bg-gray-50 rounded-xl p-6 text-center">
+                            <div class="text-xs text-gray-500 uppercase font-medium mb-3">Masaüstü Skor</div>
+                            <div class="inline-flex items-center justify-center w-28 h-28 rounded-full border-4
+                                        {{ $ps->desktop_score >= 90 ? 'border-green-500' : ($ps->desktop_score >= 50 ? 'border-yellow-500' : 'border-red-500') }}">
+                                <span class="text-4xl font-bold {{ $ps->desktop_score >= 90 ? 'text-green-600' : ($ps->desktop_score >= 50 ? 'text-yellow-600' : 'text-red-600') }}">
+                                    {{ $ps->desktop_score ?? '-' }}
+                                </span>
+                            </div>
+                            <div class="mt-4 grid grid-cols-2 gap-4 text-sm">
+                                <div>
+                                    <div class="text-gray-400 text-xs">FCP</div>
+                                    <div class="font-semibold">{{ $ps->desktop_fcp ? number_format($ps->desktop_fcp / 1000, 1) . 's' : '-' }}</div>
+                                </div>
+                                <div>
+                                    <div class="text-gray-400 text-xs">LCP</div>
+                                    <div class="font-semibold">{{ $ps->desktop_lcp ? number_format($ps->desktop_lcp / 1000, 1) . 's' : '-' }}</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-gray-400 mb-4">Son kontrol: {{ $ps->checked_at->format('d.m.Y H:i') }} ({{ $ps->checked_at->diffForHumans() }})</p>
+
+                    {{-- Geçmiş Skorlar Tablosu --}}
+                    @if($site->pageSpeedScores->count() > 1)
+                        <h4 class="text-sm font-semibold text-gray-500 uppercase mb-3">Skor Geçmişi</h4>
+                        <table class="w-full text-sm">
+                            <thead class="bg-gray-50 text-gray-600 text-xs uppercase">
+                                <tr>
+                                    <th class="px-4 py-2 text-left">Tarih</th>
+                                    <th class="px-4 py-2 text-center">Mobil</th>
+                                    <th class="px-4 py-2 text-center">Masaüstü</th>
+                                    <th class="px-4 py-2 text-center">Mobil FCP</th>
+                                    <th class="px-4 py-2 text-center">Masaüstü FCP</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                                @foreach ($site->pageSpeedScores as $score)
+                                    <tr class="hover:bg-gray-50">
+                                        <td class="px-4 py-2 text-gray-500">{{ $score->checked_at->format('d.m.Y H:i') }}</td>
+                                        <td class="px-4 py-2 text-center">
+                                            <span class="inline-flex items-center justify-center w-10 h-6 rounded text-xs font-bold
+                                                         {{ $score->mobile_score >= 90 ? 'bg-green-100 text-green-700' : ($score->mobile_score >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
+                                                {{ $score->mobile_score ?? '-' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2 text-center">
+                                            <span class="inline-flex items-center justify-center w-10 h-6 rounded text-xs font-bold
+                                                         {{ $score->desktop_score >= 90 ? 'bg-green-100 text-green-700' : ($score->desktop_score >= 50 ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700') }}">
+                                                {{ $score->desktop_score ?? '-' }}
+                                            </span>
+                                        </td>
+                                        <td class="px-4 py-2 text-center text-gray-500">{{ $score->mobile_fcp ? number_format($score->mobile_fcp / 1000, 1) . 's' : '-' }}</td>
+                                        <td class="px-4 py-2 text-center text-gray-500">{{ $score->desktop_fcp ? number_format($score->desktop_fcp / 1000, 1) . 's' : '-' }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    @endif
+                @else
+                    <p class="text-center text-gray-400 py-8">Sayfa hız kontrolü henüz yapılmamış. <code>php artisan sites:check-pagespeed --site={{ $site->id }}</code> komutunu çalıştırın.</p>
+                @endif
+
             {{-- ==================== BİLDİRİMLER ==================== --}}
             @elseif ($activeTab === 'notifications')
                 <table class="w-full text-sm">
@@ -289,6 +498,7 @@
                                         @case('ssl_expiry') <span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-800">SSL Uyarı</span> @break
                                         @case('disk_warning') <span class="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">Disk Uyarı</span> @break
                                         @case('update_available') <span class="px-2 py-0.5 rounded-full text-xs bg-blue-100 text-blue-800">Güncelleme</span> @break
+                                        @case('domain_expiry') <span class="px-2 py-0.5 rounded-full text-xs bg-orange-100 text-orange-800">Domain</span> @break
                                     @endswitch
                                 </td>
                                 <td class="px-4 py-2">{{ $notification->subject }}</td>

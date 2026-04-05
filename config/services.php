@@ -35,4 +35,22 @@ return [
         ],
     ],
 
+    'whois' => [
+        'api_key'      => env('WHOIS_API_KEY'),
+        'warning_days' => env('SITEWATCH_DOMAIN_WARNING_DAYS', 30),
+    ],
+
+    'pagespeed' => [
+        'api_key' => env('PAGESPEED_API_KEY'),
+    ],
+
+    'sitewatch' => [
+        'admin_email'    => env('SITEWATCH_ADMIN_EMAIL'),
+        'check_interval' => env('SITEWATCH_CHECK_INTERVAL', 30),
+        'ssl_warning'    => env('SITEWATCH_SSL_WARNING_DAYS', 30),
+        'domain_warning' => env('SITEWATCH_DOMAIN_WARNING_DAYS', 30),
+        'disk_warning'   => env('SITEWATCH_DISK_WARNING', 90),
+        'failure_threshold' => env('SITEWATCH_FAILURE_THRESHOLD', 2),
+    ],
+
 ];

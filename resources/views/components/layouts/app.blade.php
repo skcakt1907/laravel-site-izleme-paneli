@@ -1,5 +1,7 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="tr" x-data="{ darkMode: localStorage.getItem('darkMode') === 'true' }"
+      x-init="$watch('darkMode', val => localStorage.setItem('darkMode', val))"
+      :class="{ 'dark': darkMode }">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -11,11 +13,11 @@
     <!-- Livewire Stilleri -->
     @livewireStyles
 </head>
-<body class="bg-gray-100 min-h-screen flex" x-data="{ sidebarOpen: true }">
+<body class="bg-gray-100 dark:bg-gray-950 min-h-screen flex transition-colors duration-300" x-data="{ sidebarOpen: true }">
 
     {{-- Sol Menü (Sidebar) --}}
     <aside
-        class="bg-gray-900 text-white flex flex-col transition-all duration-300"
+        class="bg-gray-900 dark:bg-gray-900 text-white flex flex-col transition-all duration-300"
         :class="sidebarOpen ? 'w-64' : 'w-16'"
     >
         {{-- Logo Alanı --}}
@@ -33,7 +35,7 @@
 
         {{-- Menü Linkleri --}}
         <nav class="flex-1 mt-4 space-y-1 px-2">
-            {{-- Dashboard (herkes görebilir) --}}
+            {{-- Dashboard --}}
             <a href="{{ route('admin.dashboard') }}"
                class="flex items-center gap-3 px-3 py-2 rounded-lg transition
                       {{ request()->routeIs('admin.dashboard') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
@@ -43,9 +45,7 @@
                 <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Dashboard</span>
             </a>
 
-            {{-- Sadece super_admin ve admin görebilir --}}
             @if(auth()->user()->hasRole('super_admin', 'admin'))
-                {{-- Sunucular --}}
                 <a href="{{ route('admin.servers.index') }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition
                           {{ request()->routeIs('admin.servers.*') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
@@ -55,7 +55,6 @@
                     <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Sunucular</span>
                 </a>
 
-                {{-- Siteler --}}
                 <a href="{{ route('admin.sites.index') }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition
                           {{ request()->routeIs('admin.sites.*') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
@@ -65,7 +64,6 @@
                     <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Siteler</span>
                 </a>
 
-                {{-- Bildirimler --}}
                 <a href="{{ route('admin.notifications.index') }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition
                           {{ request()->routeIs('admin.notifications.*') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
@@ -75,7 +73,6 @@
                     <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Bildirimler</span>
                 </a>
 
-                {{-- Raporlar --}}
                 <a href="{{ route('admin.reports.index') }}"
                    class="flex items-center gap-3 px-3 py-2 rounded-lg transition
                           {{ request()->routeIs('admin.reports.*') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
@@ -84,6 +81,29 @@
                     </svg>
                     <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Raporlar</span>
                 </a>
+            @endif
+
+            @if(auth()->user()->isSuperAdmin())
+                <div class="mt-4 pt-4 border-t border-gray-700">
+                    <a href="{{ route('admin.users.index') }}"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition
+                              {{ request()->routeIs('admin.users.*') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                        </svg>
+                        <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Kullanıcılar</span>
+                    </a>
+
+                    <a href="{{ route('admin.settings') }}"
+                       class="flex items-center gap-3 px-3 py-2 rounded-lg transition
+                              {{ request()->routeIs('admin.settings') ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-800' }}">
+                        <svg class="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.066 2.573c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.573 1.066c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.066-2.573c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        <span x-show="sidebarOpen" x-transition class="whitespace-nowrap">Ayarlar</span>
+                    </a>
+                </div>
             @endif
         </nav>
 
@@ -123,10 +143,29 @@
     {{-- Ana İçerik --}}
     <div class="flex-1 flex flex-col">
         {{-- Üst Bar --}}
-        <header class="bg-white shadow-sm h-16 flex items-center justify-between px-6">
-            <h1 class="text-xl font-semibold text-gray-800">{{ $header ?? 'SiteWatch Panel' }}</h1>
+        <header class="bg-white dark:bg-gray-900 shadow-sm h-16 flex items-center justify-between px-6 transition-colors duration-300">
+            <h1 class="text-xl font-semibold text-gray-800 dark:text-gray-100">{{ $header ?? 'SiteWatch Panel' }}</h1>
             <div class="flex items-center gap-4">
-                <span class="text-sm text-gray-500">{{ now()->format('d.m.Y H:i') }}</span>
+                {{-- Karanlık/Aydınlık Mod Toggle --}}
+                <button @click="darkMode = !darkMode"
+                        class="relative w-14 h-7 rounded-full transition-colors duration-300 focus:outline-none"
+                        :class="darkMode ? 'bg-blue-600' : 'bg-gray-300'"
+                        title="Karanlık/Aydınlık Mod">
+                    {{-- Slider --}}
+                    <span class="absolute top-0.5 left-0.5 w-6 h-6 bg-white rounded-full shadow transition-transform duration-300 flex items-center justify-center"
+                          :class="darkMode ? 'translate-x-7' : 'translate-x-0'">
+                        {{-- Güneş (light) --}}
+                        <svg x-show="!darkMode" class="w-3.5 h-3.5 text-yellow-500" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd" d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" clip-rule="evenodd"/>
+                        </svg>
+                        {{-- Ay (dark) --}}
+                        <svg x-show="darkMode" class="w-3.5 h-3.5 text-blue-300" fill="currentColor" viewBox="0 0 20 20" style="display:none">
+                            <path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"/>
+                        </svg>
+                    </span>
+                </button>
+
+                <span class="text-sm text-gray-500 dark:text-gray-400">{{ now()->format('d.m.Y H:i') }}</span>
             </div>
         </header>
 

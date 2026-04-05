@@ -21,11 +21,21 @@ class Site extends Model
         'php_version',
         'notes',
         'is_active',
+        'domain_expires_at',
+        'domain_checked_at',
+        'pagespeed_mobile',
+        'pagespeed_desktop',
+        'pagespeed_checked_at',
     ];
 
     // Veri tipi dönüşümleri
     protected $casts = [
-        'is_active' => 'boolean',
+        'is_active'            => 'boolean',
+        'domain_expires_at'    => 'date',
+        'pagespeed_mobile'     => 'integer',
+        'pagespeed_desktop'    => 'integer',
+        'pagespeed_checked_at' => 'datetime',
+        'domain_checked_at' => 'datetime',
     ];
 
     // ---------- İLİŞKİLER ----------
@@ -60,6 +70,18 @@ class Site extends Model
         return $this->hasOne(WordpressSite::class);
     }
 
+    // Bir sitenin birçok sayfa hız skoru olabilir
+    public function pageSpeedScores(): HasMany
+    {
+        return $this->hasMany(PageSpeedScore::class);
+    }
+
+    // Son sayfa hız skoru
+    public function latestPageSpeed(): HasOne
+    {
+        return $this->hasOne(PageSpeedScore::class)->latestOfMany('checked_at');
+    }
+
     // Bir sitenin birçok bildirimi olabilir
     public function notifications(): HasMany
     {
@@ -90,5 +112,28 @@ class Site extends Model
     public function isLaravel(): bool
     {
         return $this->type === 'laravel';
+    }
+
+    // Domain süresi 30 gün veya daha az mı?
+    public function isDomainExpiringSoon(): bool
+    {
+        if (!$this->domain_expires_at) {
+            return false;
+        }
+
+        return $this->domain_expires_at->diffInDays(now(), false) <= 30
+            && $this->domain_expires_at->isFuture();
+    }
+
+    // Domain süresi dolmuş mu?
+    public function isDomainExpired(): bool
+    {
+        return $this->domain_expires_at && $this->domain_expires_at->isPast();
+    }
+
+    // URL'den domain adını çıkar
+    public function getDomainAttribute(): ?string
+    {
+        return parse_url($this->url, PHP_URL_HOST);
     }
 }

@@ -4,6 +4,7 @@ namespace App\Console\Commands;
 
 use App\Models\CpanelAccount;
 use App\Models\Notification;
+use App\Models\Setting;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\Http;
 
@@ -87,7 +88,7 @@ class CheckCpanelCommand extends Command
             ]);
 
             // Konsol çıktısı
-            $warningThreshold = config('sitewatch.disk_warning_percent', 90);
+            $warningThreshold = (int) (Setting::get('disk_warning_percent') ?? config('services.sitewatch.disk_warning', 90));
 
             if ($usagePercent >= $warningThreshold) {
                 $this->line("  <fg=red>!</> {$account->site->name} — %{$usagePercent} ({$diskUsedMb}MB / {$diskLimitMb}MB)");

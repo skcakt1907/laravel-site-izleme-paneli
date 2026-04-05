@@ -1,3 +1,86 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+    /* Dark mode genel override'lar - tüm sayfalarda otomatik çalışır */
+    .dark .bg-white {
+        background-color: #1f2937 !important; /* gray-800 */
+    }
+    .dark .bg-gray-50 {
+        background-color: #111827 !important; /* gray-900 */
+    }
+    .dark .bg-gray-100 {
+        background-color: #030712 !important; /* gray-950 */
+    }
+    .dark .text-gray-900 {
+        color: #f3f4f6 !important; /* gray-100 */
+    }
+    .dark .text-gray-800 {
+        color: #e5e7eb !important; /* gray-200 */
+    }
+    .dark .text-gray-700 {
+        color: #d1d5db !important; /* gray-300 */
+    }
+    .dark .text-gray-600 {
+        color: #9ca3af !important; /* gray-400 */
+    }
+    .dark .text-gray-500 {
+        color: #6b7280 !important; /* gray-500 - stays */
+    }
+    .dark .border-gray-200 {
+        border-color: #374151 !important; /* gray-700 */
+    }
+    .dark .border-gray-100 {
+        border-color: #374151 !important;
+    }
+    .dark .border-gray-300 {
+        border-color: #4b5563 !important; /* gray-600 */
+    }
+    .dark .divide-gray-200 > :not([hidden]) ~ :not([hidden]) {
+        border-color: #374151 !important;
+    }
+    .dark .hover\:bg-gray-50:hover {
+        background-color: #1f2937 !important;
+    }
+    .dark .hover\:bg-gray-100:hover {
+        background-color: #374151 !important;
+    }
+
+    /* Dark mode inputs */
+    .dark input,
+    .dark select,
+    .dark textarea {
+        background-color: #111827 !important;
+        border-color: #374151 !important;
+        color: #e5e7eb !important;
+    }
+    .dark input::placeholder,
+    .dark textarea::placeholder {
+        color: #6b7280 !important;
+    }
+    .dark input:focus,
+    .dark select:focus,
+    .dark textarea:focus {
+        border-color: #3b82f6 !important;
+    }
+
+    /* Dark mode modals */
+    .dark .bg-black\/50 {
+        background-color: rgba(0, 0, 0, 0.7) !important;
+    }
+
+    /* Dark mode badges - üst renkler aynı kalır (green, red, blue, yellow, orange, purple) */
+    /* Sadece border-t düzeltmesi */
+    .dark .border-t {
+        border-color: #374151 !important;
+    }
+    .dark .border-b {
+        border-color: #374151 !important;
+    }
+
+    /* Dark mode shadow */
+    .dark .shadow-sm {
+        box-shadow: 0 1px 2px 0 rgb(0 0 0 / 0.3) !important;
+    }
+}
