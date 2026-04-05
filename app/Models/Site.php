@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
@@ -10,6 +11,7 @@ class Site extends Model
 {
     // Toplu atama yapılabilecek alanlar
     protected $fillable = [
+        'server_id',
         'name',
         'url',
         'type',
@@ -27,6 +29,12 @@ class Site extends Model
     ];
 
     // ---------- İLİŞKİLER ----------
+
+    // Sitenin bağlı olduğu sunucu
+    public function server(): BelongsTo
+    {
+        return $this->belongsTo(Server::class);
+    }
 
     // Bir sitenin birçok HTTP kontrol kaydı olabilir
     public function checks(): HasMany

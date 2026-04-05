@@ -105,7 +105,7 @@
                 @forelse ($downSites as $site)
                     <div class="flex items-center justify-between py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
                         <div>
-                            <a href="{{ route('sites.show', $site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $site->name }}</a>
+                            <a href="{{ route('admin.sites.show', $site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $site->name }}</a>
                             <div class="text-xs text-gray-400">{{ $site->url }}</div>
                         </div>
                         <div class="text-right">
@@ -135,7 +135,7 @@
                 @if($sslExpired->count() > 0)
                     @foreach ($sslExpired as $cert)
                         <div class="flex items-center justify-between py-2 border-b border-gray-50">
-                            <a href="{{ route('sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
+                            <a href="{{ route('admin.sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
                             <span class="px-2 py-0.5 rounded-full text-xs bg-red-100 text-red-700">Süresi Dolmuş</span>
                         </div>
                     @endforeach
@@ -143,7 +143,7 @@
 
                 @forelse ($sslWarnings as $cert)
                     <div class="flex items-center justify-between py-2 {{ !$loop->last ? 'border-b border-gray-50' : '' }}">
-                        <a href="{{ route('sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
+                        <a href="{{ route('admin.sites.show', $cert->site) }}" class="text-sm font-medium text-gray-900 hover:text-blue-600">{{ $cert->site->name }}</a>
                         <span class="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700">{{ $cert->days_remaining }} gün</span>
                     </div>
                 @empty
@@ -180,7 +180,7 @@
                         @forelse ($recentChecks as $check)
                             <tr class="hover:bg-gray-50">
                                 <td class="px-4 py-2 font-medium">
-                                    <a href="{{ route('sites.show', $check->site) }}" class="hover:text-blue-600">{{ $check->site->name }}</a>
+                                    <a href="{{ route('admin.sites.show', $check->site) }}" class="hover:text-blue-600">{{ $check->site->name }}</a>
                                 </td>
                                 <td class="px-4 py-2">
                                     <span class="px-2 py-0.5 rounded-full text-xs {{ $check->is_up ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800' }}">

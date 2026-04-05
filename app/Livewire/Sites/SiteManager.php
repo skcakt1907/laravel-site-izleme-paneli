@@ -193,7 +193,7 @@ class SiteManager extends Component
             ->paginate(15);
 
         return view('livewire.sites.site-manager', compact('sites'))
-            ->layout('layouts.app', [
+            ->layout('components.layouts.app', [
                 'title'  => 'Siteler - SiteWatch',
                 'header' => 'Site Yönetimi',
             ]);

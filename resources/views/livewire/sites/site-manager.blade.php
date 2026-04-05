@@ -149,7 +149,7 @@
                             <td class="px-6 py-4 text-right">
                                 <div class="flex items-center justify-end gap-2">
                                     {{-- Detay --}}
-                                    <a href="{{ route('sites.show', $site) }}"
+                                    <a href="{{ route('admin.sites.show', $site) }}"
                                        class="text-gray-600 hover:text-gray-800 p-1 rounded hover:bg-gray-50 transition"
                                        title="Detay">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
